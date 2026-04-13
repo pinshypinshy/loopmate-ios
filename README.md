@@ -110,3 +110,13 @@ View から直接 Firestore を操作しない構造としています。
 - 非同期処理の async/await への統一
 - テストコードの追加
 - UI/UX の改善
+
+---
+
+## スクリーンショット
+
+<img width="590" height="1278" alt="loopmate01" src="https://github.com/user-attachments/assets/8bf7d34f-9355-47d4-92f3-4b6c472c914d" />
+<img width="590" height="1278" alt="loopmate02" src="https://github.com/user-attachments/assets/db5c13b6-e52f-4152-8c07-8fc3588b3fbd" />
+<img width="590" height="1278" alt="loopmate03" src="https://github.com/user-attachments/assets/cfee7ff6-579e-4032-be5f-28994720ef9f" />
+<img width="590" height="1278" alt="loopmate04" src="https://github.com/user-attachments/assets/ddf3844b-1900-4704-958e-618a8721c4dc" />
+
