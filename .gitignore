@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Xcode user settings（個人環境）
+xcuserdata/
+**/xcuserdata/
+*.xcuserstate
+**/*.xcuserstate
+
+# Xcode build
+build/
+DerivedData/
+
+# SwiftPM
+.build/
+
+# Firebase
+GoogleService-Info.plist
+**/GoogleService-Info.plist
