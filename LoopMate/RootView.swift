@@ -7,32 +7,30 @@
 
 import SwiftUI
 import FirebaseAuth
-import FirebaseFirestore
 
 struct RootView: View {
-    @State private var isRegistered = false
-    @State private var isRegistrationPresented: Bool
+    @State private var isRegistrationPresented = false
     @State private var hasTriedAnonymousSignIn = false
     
-    init() {
-        _isRegistered = State(initialValue: false)
-        _isRegistrationPresented = State(initialValue: false)
-    }
+    private let userService = UserService()
     
     var body: some View {
         ContentView()
             .task {
-                await signInAnonymouslyIfNeeded()
-                checkIfUserProfileExists()
+                await setupInitialSession()
             }
             .fullScreenCover(isPresented: $isRegistrationPresented) {
                 AccountRegistrationFlowView(
                     onCompleted: {
-                        isRegistered = true
                         isRegistrationPresented = false
                     }
                 )
             }
+    }
+    
+    private func setupInitialSession() async {
+        await signInAnonymouslyIfNeeded()
+        checkIfUserProfileExists()
     }
     
     private func signInAnonymouslyIfNeeded() async {
@@ -58,22 +56,21 @@ struct RootView: View {
             return
         }
         
-        let db = Firestore.firestore()
-        
-        db.collection("users").document(uid).getDocument { snapshot, error in
-            if let error = error {
-                print("プロフィール確認失敗: \(error)")
-                return
-            }
-            
-            if let snapshot = snapshot, snapshot.exists {
-                print("プロフィールあり")
-                isRegistered = true
-                isRegistrationPresented = false
-            } else {
-                print("プロフィールなし")
-                isRegistered = false
-                isRegistrationPresented = true
+        userService.checkUserProfileExists(uid: uid) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let exists):
+                    if exists {
+                        print("プロフィールあり")
+                        isRegistrationPresented = false
+                    } else {
+                        print("プロフィールなし")
+                        isRegistrationPresented = true
+                    }
+                    
+                case .failure(let error):
+                    print("プロフィール確認失敗: \(error)")
+                }
             }
         }
     }
