@@ -143,48 +143,8 @@ final class RoomService {
                     return
                 }
                 
-                guard
-                    let snapshot,
-                    let data = snapshot.data()
-                else {
-                    return
-                }
-                
-                guard
-                    let name = data["name"] as? String,
-                    let code = data["code"] as? String,
-                    let memberCount = data["memberCount"] as? Int,
-                    let ownerUid = data["ownerUid"] as? String,
-                    let createdAt = data["createdAt"] as? Timestamp,
-                    let updatedAt = data["updatedAt"] as? Timestamp,
-                    let isNumberRequired = data["isNumberRequired"] as? Bool,
-                    let isPhotoRequired = data["isPhotoRequired"] as? Bool,
-                    let startDate = data["startDate"] as? Timestamp,
-                    let selectedWeekdays = data["selectedWeekdays"] as? [Bool]
-                else {
-                    return
-                }
-                
-                let iconName = data["iconName"] as? String ?? "checkmark.circle"
-                let endDate = data["endDate"] as? Timestamp
-                
-                let room = Room(
-                    id: snapshot.documentID,
-                    name: name,
-                    code: code,
-                    memberCount: memberCount,
-                    ownerUid: ownerUid,
-                    createdAt: createdAt,
-                    updatedAt: updatedAt,
-                    iconName: iconName,
-                    isNumberRequired: isNumberRequired,
-                    isPhotoRequired: isPhotoRequired,
-                    startDate: startDate,
-                    endDate: endDate,
-                    selectedWeekdays: selectedWeekdays,
-                    progress: 0
-                )
-                
+                guard let snapshot, let room = Room(snapshot: snapshot) else { return }
+
                 rooms.append(room)
             }
         }
@@ -209,50 +169,16 @@ final class RoomService {
                 return
             }
             
-            guard
-                let snapshot,
-                let data = snapshot.data()
-            else {
+            guard let snapshot else {
                 completion(.failure(RoomServiceError.roomNotFound))
                 return
             }
-            
-            guard
-                let name = data["name"] as? String,
-                let code = data["code"] as? String,
-                let memberCount = data["memberCount"] as? Int,
-                let ownerUid = data["ownerUid"] as? String,
-                let createdAt = data["createdAt"] as? Timestamp,
-                let updatedAt = data["updatedAt"] as? Timestamp,
-                let isNumberRequired = data["isNumberRequired"] as? Bool,
-                let isPhotoRequired = data["isPhotoRequired"] as? Bool,
-                let startDate = data["startDate"] as? Timestamp,
-                let selectedWeekdays = data["selectedWeekdays"] as? [Bool]
-            else {
+
+            guard let room = Room(snapshot: snapshot) else {
                 completion(.failure(RoomServiceError.invalidRoomData))
                 return
             }
-            
-            let iconName = data["iconName"] as? String ?? "checkmark.circle"
-            let endDate = data["endDate"] as? Timestamp
-            
-            let room = Room(
-                id: snapshot.documentID,
-                name: name,
-                code: code,
-                memberCount: memberCount,
-                ownerUid: ownerUid,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                iconName: iconName,
-                isNumberRequired: isNumberRequired,
-                isPhotoRequired: isPhotoRequired,
-                startDate: startDate,
-                endDate: endDate,
-                selectedWeekdays: selectedWeekdays,
-                progress: 0
-            )
-            
+
             completion(.success(room))
         }
     }
@@ -280,44 +206,11 @@ final class RoomService {
                     return
                 }
                 
-                let data = document.data()
-                
-                guard
-                    let name = data["name"] as? String,
-                    let code = data["code"] as? String,
-                    let memberCount = data["memberCount"] as? Int,
-                    let ownerUid = data["ownerUid"] as? String,
-                    let createdAt = data["createdAt"] as? Timestamp,
-                    let updatedAt = data["updatedAt"] as? Timestamp,
-                    let isNumberRequired = data["isNumberRequired"] as? Bool,
-                    let isPhotoRequired = data["isPhotoRequired"] as? Bool,
-                    let startDate = data["startDate"] as? Timestamp,
-                    let selectedWeekdays = data["selectedWeekdays"] as? [Bool]
-                else {
+                guard let room = Room(snapshot: document) else {
                     completion(.failure(RoomServiceError.invalidRoomData))
                     return
                 }
-                
-                let iconName = data["iconName"] as? String ?? "checkmark.circle"
-                let endDate = data["endDate"] as? Timestamp
-                
-                let room = Room(
-                    id: document.documentID,
-                    name: name,
-                    code: code,
-                    memberCount: memberCount,
-                    ownerUid: ownerUid,
-                    createdAt: createdAt,
-                    updatedAt: updatedAt,
-                    iconName: iconName,
-                    isNumberRequired: isNumberRequired,
-                    isPhotoRequired: isPhotoRequired,
-                    startDate: startDate,
-                    endDate: endDate,
-                    selectedWeekdays: selectedWeekdays,
-                    progress: 0
-                )
-                
+
                 completion(.success(room))
             }
     }

@@ -62,6 +62,43 @@ struct Room: Identifiable, Hashable {
 }
 
 extension Room {
+    /// Firestore の DocumentSnapshot から Room を生成する
+    init?(snapshot: DocumentSnapshot) {
+        guard
+            let data = snapshot.data(),
+            let name = data["name"] as? String,
+            let code = data["code"] as? String,
+            let memberCount = data["memberCount"] as? Int,
+            let ownerUid = data["ownerUid"] as? String,
+            let createdAt = data["createdAt"] as? Timestamp,
+            let updatedAt = data["updatedAt"] as? Timestamp,
+            let isNumberRequired = data["isNumberRequired"] as? Bool,
+            let isPhotoRequired = data["isPhotoRequired"] as? Bool,
+            let startDate = data["startDate"] as? Timestamp,
+            let selectedWeekdays = data["selectedWeekdays"] as? [Bool]
+        else { return nil }
+
+        let iconName = data["iconName"] as? String ?? "checkmark.circle"
+        let endDate = data["endDate"] as? Timestamp
+
+        self.init(
+            id: snapshot.documentID,
+            name: name,
+            code: code,
+            memberCount: memberCount,
+            ownerUid: ownerUid,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            iconName: iconName,
+            isNumberRequired: isNumberRequired,
+            isPhotoRequired: isPhotoRequired,
+            startDate: startDate,
+            endDate: endDate,
+            selectedWeekdays: selectedWeekdays,
+            progress: 0
+        )
+    }
+
     static let preview = Room(
         id: "preview",
         name: "テストルーム",
