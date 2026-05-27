@@ -53,7 +53,10 @@ final class MissionService {
         photoURL: String?,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Auth.auth().currentUser?.uid else {
+            completion(.failure(MissionServiceError.userNotSignedIn))
+            return
+        }
         
         let dateKey = Self.makeDateKey()
         let recordId = "\(room.id)_\(uid)_\(dateKey)"

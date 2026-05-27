@@ -14,6 +14,15 @@
 
 /* Begin PBXFileReference section */
 		B67A59A82F568C0F00767181 /* LoopMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LoopMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B6946AC42FBC9A4600E40F94 /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B6946B042FBC9A4600E40F94 /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B6946B442FBC9A4600E40F94 /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B6946DD72FBC9C4F00E40F94 /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B69472C92FBCA5DB00E40F94 /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B69473AF2FBCB56C00E40F94 /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B6CFCB172FB15B0400CF8CAE /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B6CFCC682FB1D61F00CF8CAE /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
+		B6CFCD6E2FB2BDB100CF8CAE /* LoopMate.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LoopMate.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -55,11 +64,74 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B6946B852FBC9A4600E40F94 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B6946B872FBC9A4600E40F94 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B6946B892FBC9A4600E40F94 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B6946DDA2FBC9C4F00E40F94 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B69472CE2FBCA5DB00E40F94 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B69473B22FBCB56C00E40F94 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		B6B91A9B2F693DB500C217CD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		B6CFCB582FB15B0400CF8CAE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B6CFCC6B2FB1D61F00CF8CAE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B6CFCD712FB2BDB100CF8CAE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -120,6 +192,44 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B67A59A92F568C0F00767181 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = B6CFCB582FB15B0400CF8CAE /* Products */;
+					ProjectRef = B6CFCB172FB15B0400CF8CAE /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B6946B872FBC9A4600E40F94 /* Products */;
+					ProjectRef = B6946AC42FBC9A4600E40F94 /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B6946B892FBC9A4600E40F94 /* Products */;
+					ProjectRef = B6946B042FBC9A4600E40F94 /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B6CFCC6B2FB1D61F00CF8CAE /* Products */;
+					ProjectRef = B6CFCC682FB1D61F00CF8CAE /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B69473B22FBCB56C00E40F94 /* Products */;
+					ProjectRef = B69473AF2FBCB56C00E40F94 /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B6946DDA2FBC9C4F00E40F94 /* Products */;
+					ProjectRef = B6946DD72FBC9C4F00E40F94 /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B6CFCD712FB2BDB100CF8CAE /* Products */;
+					ProjectRef = B6CFCD6E2FB2BDB100CF8CAE /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B6946B852FBC9A4600E40F94 /* Products */;
+					ProjectRef = B6946B442FBC9A4600E40F94 /* LoopMate.xcodeproj */;
+				},
+				{
+					ProductGroup = B69472CE2FBCA5DB00E40F94 /* Products */;
+					ProjectRef = B69472C92FBCA5DB00E40F94 /* LoopMate.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				B67A59A72F568C0F00767181 /* LoopMate */,
@@ -278,6 +388,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8M8WZFVBS9;
 				ENABLE_PREVIEWS = YES;
+				EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = .claude;
+				EXCLUDED_SOURCE_FILE_NAMES = "LoopMate/.claude/**";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "ミッション実施記録のために写真を撮影します";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ミッション実施記録のために写真を選択します";
@@ -312,6 +424,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8M8WZFVBS9;
 				ENABLE_PREVIEWS = YES;
+				EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = .claude;
+				EXCLUDED_SOURCE_FILE_NAMES = "LoopMate/.claude/**";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "ミッション実施記録のために写真を撮影します";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ミッション実施記録のために写真を選択します";

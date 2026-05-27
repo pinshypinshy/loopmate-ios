@@ -124,7 +124,7 @@ struct MissionView: View {
         
         return rooms.filter { room in
             
-            guard room.selectedWeekdays[weekday] else { return false }
+            guard weekday < room.selectedWeekdays.count, room.selectedWeekdays[weekday] else { return false }
             
             if room.startDate.dateValue() > today {
                 return false
