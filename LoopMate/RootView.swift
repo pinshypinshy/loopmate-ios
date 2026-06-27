@@ -6,18 +6,16 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct RootView: View {
-    @State private var isRegistrationPresented = false
-    @State private var hasTriedAnonymousSignIn = false
-    
-    private let userService = UserService()
-    
+    @State private var isRegistrationPresented = false // アカウント登録フローを全画面表示するかのフラグ
+
+    private let sessionService = SessionService()
+
     var body: some View {
         ContentView()
             .task {
-                await setupInitialSession()
+                await startSession()
             }
             .fullScreenCover(isPresented: $isRegistrationPresented) {
                 AccountRegistrationFlowView(
@@ -27,51 +25,13 @@ struct RootView: View {
                 )
             }
     }
-    
-    private func setupInitialSession() async {
-        await signInAnonymouslyIfNeeded()
-        checkIfUserProfileExists()
-    }
-    
-    private func signInAnonymouslyIfNeeded() async {
-        guard !hasTriedAnonymousSignIn else { return }
-        hasTriedAnonymousSignIn = true
-        
-        if let currentUser = Auth.auth().currentUser {
-            print("既にログイン済み uid:", currentUser.uid)
-            return
-        }
-        
+
+    private func startSession() async {
         do {
-            let result = try await Auth.auth().signInAnonymously()
-            print("匿名ログイン成功 uid:", result.user.uid)
+            let result = try await sessionService.start()
+            isRegistrationPresented = (result == .needsRegistration)
         } catch {
-            print("匿名ログイン失敗:", error.localizedDescription)
-        }
-    }
-    
-    private func checkIfUserProfileExists() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            print("uidが取れなかったのでプロフィール確認できない")
-            return
-        }
-        
-        userService.checkUserProfileExists(uid: uid) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let exists):
-                    if exists {
-                        print("プロフィールあり")
-                        isRegistrationPresented = false
-                    } else {
-                        print("プロフィールなし")
-                        isRegistrationPresented = true
-                    }
-                    
-                case .failure(let error):
-                    print("プロフィール確認失敗: \(error)")
-                }
-            }
+            print("セッション初期化失敗: \(error.localizedDescription)")
         }
     }
 }

@@ -111,18 +111,8 @@ final class UserService {
             }
     }
     
-    func checkUserProfileExists(
-        uid: String,
-        completion: @escaping (Result<Bool, Error>) -> Void
-    ) {
-        db.collection("users").document(uid).getDocument { snapshot, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            
-            let exists = snapshot?.exists ?? false
-            completion(.success(exists))
-        }
+    func checkUserProfileExists(uid: String) async throws -> Bool {
+        let snapshot = try await db.collection("users").document(uid).getDocument()
+        return snapshot.exists
     }
 }
