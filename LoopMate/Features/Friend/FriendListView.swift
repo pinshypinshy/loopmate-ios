@@ -82,11 +82,10 @@ struct FriendListView: View {
                     return
                 }
                 
-                userService.fetchUsers(uids: friendIds) { users in
-                    DispatchQueue.main.async {
-                        isLoading = false
-                        friends = users
-                    }
+                Task { @MainActor in
+                    let users = await userService.fetchUsers(uids: friendIds)
+                    isLoading = false
+                    friends = users
                 }
                 
             case .failure(let error):

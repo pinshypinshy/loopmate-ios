@@ -397,7 +397,8 @@ private extension RoomView {
     }
 
     func loadUsers(uids: [String]) {
-        userService.fetchUsers(uids: uids) { users in
+        Task {
+            let users = await userService.fetchUsers(uids: uids)
             self.users = users
             loadRankingIfPossible()
         }

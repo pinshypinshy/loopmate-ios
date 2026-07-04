@@ -148,29 +148,28 @@ struct FriendView: View {
         
         isSearching = true
         
-        userService.fetchUserByUsernameKey(trimmed) { result in
-            DispatchQueue.main.async {
-                isSearching = false
-                
-                switch result {
-                case .success(let user):
-                    guard let user else {
-                        searchedUser = nil
-                        return
-                    }
-                    
-                    if user.id == myUid {
-                        searchedUser = nil
-                        return
-                    }
-                    
-                    searchedUser = user
-                    fetchRelationState(for: user)
-                    
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
+        Task {
+            defer { isSearching = false }
+
+            do {
+                let user = try await userService.fetchUserByUsernameKey(trimmed)
+
+                guard let user else {
+                    searchedUser = nil
+                    return
                 }
+
+                if user.id == myUid {
+                    searchedUser = nil
+                    return
+                }
+
+                searchedUser = user
+                fetchRelationState(for: user)
+
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

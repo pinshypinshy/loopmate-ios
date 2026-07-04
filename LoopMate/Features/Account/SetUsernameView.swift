@@ -104,23 +104,22 @@ struct SetUsernameView: View {
         
         isChecking = true
         
-        userService.isUsernameAvailable(trimmedUsername) { result in
-            DispatchQueue.main.async {
-                isChecking = false
-                
-                switch result {
-                case .success(let isAvailable):
-                    if isAvailable {
-                        shouldNavigate = true
-                    } else {
-                        alertMessage = "このユーザーIDはすでに使われています"
-                        showAlert = true
-                    }
-                    
-                case .failure(let error):
-                    alertMessage = "ユーザーIDの確認に失敗しました: \(error.localizedDescription)"
+        Task {
+            defer { isChecking = false }
+
+            do {
+                let isAvailable = try await userService.isUsernameAvailable(trimmedUsername)
+
+                if isAvailable {
+                    shouldNavigate = true
+                } else {
+                    alertMessage = "このユーザーIDはすでに使われています"
                     showAlert = true
                 }
+
+            } catch {
+                alertMessage = "ユーザーIDの確認に失敗しました: \(error.localizedDescription)"
+                showAlert = true
             }
         }
     }

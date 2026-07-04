@@ -16,6 +16,23 @@ struct User: Identifiable, Hashable {
 }
 
 extension User {
+    init?(id: String, data: [String: Any]) {
+        guard
+            let displayName = data["displayName"] as? String,
+            let username = data["username"] as? String,
+            let usernameKey = data["usernameKey"] as? String,
+            let iconName = data["iconName"] as? String
+        else { return nil }
+
+        self.init(
+            id: id,
+            displayName: displayName,
+            username: username,
+            usernameKey: usernameKey,
+            iconName: iconName
+        )
+    }
+
     static let preview = User(
         id: "testuser",
         displayName: "プレビュー用",

@@ -12,103 +12,48 @@ final class UserService {
     
     private let db = Firestore.firestore()
     
-    func fetchUsers(
-        uids: [String],
-        completion: @escaping ([User]) -> Void
-    ) {
-        let group = DispatchGroup()
-        var users: [User] = []
-        
-        for uid in uids {
-            group.enter()
-            
-            db.collection("users").document(uid).getDocument { snapshot, _ in
-                defer { group.leave() }
-                
-                guard
-                    let data = snapshot?.data(),
-                    let displayName = data["displayName"] as? String,
-                    let username = data["username"] as? String,
-                    let usernameKey = data["usernameKey"] as? String,
-                    let iconName = data["iconName"] as? String
-                else { return }
-                
-                users.append(User(
-                    id: uid,
-                    displayName: displayName,
-                    username: username,
-                    usernameKey: usernameKey,
-                    iconName: iconName
-                ))
+    func fetchUsers(uids: [String]) async -> [User] {
+        await withTaskGroup(of: User?.self) { group in
+            for uid in uids {
+                group.addTask {
+                    let snapshot = try? await self.db.collection("users").document(uid).getDocument()
+
+                    guard let data = snapshot?.data() else { return nil }
+
+                    return User(id: uid, data: data)
+                }
             }
-        }
-        
-        group.notify(queue: .main) {
-            completion(users)
+
+            var users: [User] = []
+            for await user in group {
+                if let user {
+                    users.append(user)
+                }
+            }
+            return users
         }
     }
-    
-    func fetchUserByUsernameKey(
-        _ searchedUsernameKey: String,
-        completion: @escaping (Result<User?, Error>) -> Void
-    ) {
-        db.collection("users")
+
+    func fetchUserByUsernameKey(_ searchedUsernameKey: String) async throws -> User? {
+        let snapshot = try await db.collection("users")
             .whereField("usernameKey", isEqualTo: searchedUsernameKey)
             .limit(to: 1)
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    completion(.failure(error))
-                    return
-                }
-                
-                guard let document = snapshot?.documents.first else {
-                    completion(.success(nil))
-                    return
-                }
-                
-                let data = document.data()
-                
-                guard
-                    let displayName = data["displayName"] as? String,
-                    let username = data["username"] as? String,
-                    let usernameKey = data["usernameKey"] as? String,
-                    let iconName = data["iconName"] as? String
-                else {
-                    completion(.success(nil))
-                    return
-                }
-                
-                let user = User(
-                    id: document.documentID,
-                    displayName: displayName,
-                    username: username,
-                    usernameKey: usernameKey,
-                    iconName: iconName
-                )
-                
-                completion(.success(user))
-            }
+            .getDocuments()
+
+        guard let document = snapshot.documents.first else { return nil }
+
+        return User(id: document.documentID, data: document.data())
     }
-    
-    func isUsernameAvailable(
-        _ username: String,
-        completion: @escaping (Result<Bool, Error>) -> Void
-    ) {
+
+    func isUsernameAvailable(_ username: String) async throws -> Bool {
         let usernameKey = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        
-        db.collection("users")
+
+        let snapshot = try await db.collection("users")
             .whereField("usernameKey", isEqualTo: usernameKey)
             .limit(to: 1)
-            .getDocuments { snapshot, error in
-                
-                if let error = error {
-                    completion(.failure(error))
-                    return
-                }
-                
-                let isAvailable = snapshot?.documents.isEmpty ?? true
-                completion(.success(isAvailable))
-            }
+            .getDocuments()
+
+        return snapshot.documents.isEmpty
     }
     
     func checkUserProfileExists(uid: String) async throws -> Bool {
