@@ -213,18 +213,15 @@ private extension RoomFriendView {
     func loadRoom() {
         isLoading = true
 
-        roomService.fetchRoom(roomId: roomId) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let fetchedRoom):
-                    room = fetchedRoom
-                    loadRecordDateKeys()
-
-                case .failure(let error):
-                    isLoading = false
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            do {
+                let fetchedRoom = try await roomService.fetchRoom(roomId: roomId)
+                room = fetchedRoom
+                loadRecordDateKeys()
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

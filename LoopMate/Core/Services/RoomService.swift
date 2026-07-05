@@ -30,6 +30,17 @@ final class RoomService {
     private let db = Firestore.firestore()
     private let authService = AuthService()
 
+    /// ルームを新規作成し、作成者をオーナーとして登録する。
+    /// - Parameters:
+    ///   - name: ルーム名。
+    ///   - iconName: ルームアイコン名。
+    ///   - isNumberRequired: 記録時に数値入力を必須とするか。
+    ///   - isPhotoRequired: 記録時に写真添付を必須とするか。
+    ///   - startDate: ミッション開始日。
+    ///   - endDate: ミッション終了日（無期限の場合は nil）。
+    ///   - selectedWeekdays: 曜日ごとの有効フラグ（日曜始まりの 7 要素）。
+    /// - Returns: 作成されたルーム。
+    /// - Throws: 未認証の場合は `AuthError.notAuthenticated`、書き込み失敗時は Firestore エラー。
     func createRoom(
         name: String,
         iconName: String,
@@ -37,19 +48,17 @@ final class RoomService {
         isPhotoRequired: Bool,
         startDate: Date,
         endDate: Date?,
-        selectedWeekdays: [Bool],
-        completion: @escaping (Result<Room, Error>) -> Void
-    ) {
+        selectedWeekdays: [Bool]
+    ) async throws -> Room {
         guard let uid = authService.currentUid else {
-            completion(.failure(AuthError.notAuthenticated))
-            return
+            throw AuthError.notAuthenticated
         }
-        
+
         let roomRef = db.collection("rooms").document()
         let roomId = roomRef.documentID
         let now = Timestamp(date: Date())
         let roomCode = Self.generateRoomCode()
-        
+
         let roomData: [String: Any] = [
             "name": name,
             "code": roomCode,
@@ -64,188 +73,157 @@ final class RoomService {
             "endDate": endDate.map { Timestamp(date: $0) } as Any,
             "selectedWeekdays": selectedWeekdays
         ]
-        
+
         let memberDocId = "\(roomId)_\(uid)"
-        
+
         let memberData: [String: Any] = [
             "roomId": roomId,
             "uid": uid,
             "role": "owner",
             "joinedAt": now
         ]
-        
+
         let batch = db.batch()
         batch.setData(roomData, forDocument: roomRef)
         batch.setData(memberData, forDocument: db.collection("roomMembers").document(memberDocId))
-        
-        batch.commit { error in
-            if let error {
-                completion(.failure(error))
-            } else {
-                let createdRoom = Room(
-                    id: roomId,
-                    name: name,
-                    code: roomCode,
-                    memberCount: 1,
-                    ownerUid: uid,
-                    createdAt: now,
-                    updatedAt: now,
-                    iconName: iconName,
-                    isNumberRequired: isNumberRequired,
-                    isPhotoRequired: isPhotoRequired,
-                    startDate: Timestamp(date: startDate),
-                    endDate: endDate.map { Timestamp(date: $0) },
-                    selectedWeekdays: selectedWeekdays,
-                    progress: 0
-                )
-                
-                completion(.success(createdRoom))
-            }
-        }
+
+        try await batch.commit()
+
+        return Room(
+            id: roomId,
+            name: name,
+            code: roomCode,
+            memberCount: 1,
+            ownerUid: uid,
+            createdAt: now,
+            updatedAt: now,
+            iconName: iconName,
+            isNumberRequired: isNumberRequired,
+            isPhotoRequired: isPhotoRequired,
+            startDate: Timestamp(date: startDate),
+            endDate: endDate.map { Timestamp(date: $0) },
+            selectedWeekdays: selectedWeekdays,
+            progress: 0
+        )
     }
-    
+
+    /// ルーム参加用のランダムな招待コードを生成する。
+    /// - Parameter length: 生成するコードの文字数（既定 5）。
+    /// - Returns: 英大文字と数字からなるコード文字列。
     private static func generateRoomCode(length: Int = 5) -> String {
         let characters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
         return String((0..<length).compactMap { _ in characters.randomElement() })
     }
-    
-    // 自分の所属ルーム一覧を取得する関数
-    func fetchMyRooms(completion: @escaping (Result<[Room], Error>) -> Void) {
+
+    /// 自分が所属するルーム一覧を取得する。
+    /// - Returns: 作成日の新しい順に並べたルーム配列。所属がなければ空配列。
+    /// - Throws: 未認証の場合は `AuthError.notAuthenticated`、取得失敗時は Firestore エラー。
+    func fetchMyRooms() async throws -> [Room] {
         guard let uid = authService.currentUid else {
-            completion(.failure(AuthError.notAuthenticated))
-            return
+            throw AuthError.notAuthenticated
         }
-        
-        db.collection("roomMembers")
+
+        let snapshot = try await db.collection("roomMembers")
             .whereField("uid", isEqualTo: uid)
-            .getDocuments { snapshot, error in
-                if let error {
-                    completion(.failure(error))
-                    return
-                }
-                
-                guard let documents = snapshot?.documents else {
-                    completion(.success([]))
-                    return
-                }
-                
-                let roomIds = documents.compactMap { $0.data()["roomId"] as? String }
-                
-                if roomIds.isEmpty {
-                    completion(.success([]))
-                    return
-                }
-                
-                self.fetchRooms(by: roomIds, completion: completion)
-            }
-    }
-    
-    // roomId 配列から rooms を取得する関数
-    private func fetchRooms(
-        by roomIds: [String],
-        completion: @escaping (Result<[Room], Error>) -> Void
-    ) {
-        let group = DispatchGroup()
-        var rooms: [Room] = []
-        var fetchError: Error?
-        
-        for roomId in roomIds {
-            group.enter()
-            
-            db.collection("rooms").document(roomId).getDocument { snapshot, error in
-                defer { group.leave() }
-                
-                if let error {
-                    fetchError = error
-                    return
-                }
-                
-                guard let snapshot, let room = Room(snapshot: snapshot) else { return }
+            .getDocuments()
 
-                rooms.append(room)
-            }
+        let roomIds = snapshot.documents.compactMap { $0.data()["roomId"] as? String }
+
+        if roomIds.isEmpty {
+            return []
         }
-        
-        group.notify(queue: .main) {
-            if let fetchError {
-                completion(.failure(fetchError))
-            } else {
-                let sortedRooms = rooms.sorted {
-                    $0.createdAt.dateValue() > $1.createdAt.dateValue()
-                }
-                completion(.success(sortedRooms))
-            }
-        }
+
+        return try await fetchRooms(by: roomIds)
     }
-    
-    // 単一ルーム取得
-    func fetchRoom(roomId: String, completion: @escaping (Result<Room, Error>) -> Void) {
-        db.collection("rooms").document(roomId).getDocument { snapshot, error in
-            if let error {
-                completion(.failure(error))
-                return
-            }
-            
-            guard let snapshot else {
-                completion(.failure(RoomServiceError.roomNotFound))
-                return
+
+    /// 複数の roomId から対応するルームを並列に取得する。
+    /// - Parameter roomIds: 取得対象のルーム ID 配列。
+    /// - Returns: 作成日の新しい順に並べたルーム配列（取得・パースできなかったものは除外）。
+    /// - Throws: いずれかの取得に失敗した場合は Firestore エラー。
+    private func fetchRooms(by roomIds: [String]) async throws -> [Room] {
+        let rooms = try await withThrowingTaskGroup(of: Room?.self) { group -> [Room] in
+            for roomId in roomIds {
+                group.addTask {
+                    let snapshot = try await self.db.collection("rooms").document(roomId).getDocument()
+                    return Room(snapshot: snapshot)
+                }
             }
 
-            guard let room = Room(snapshot: snapshot) else {
-                completion(.failure(RoomServiceError.invalidRoomData))
-                return
+            var results: [Room] = []
+            for try await room in group {
+                if let room {
+                    results.append(room)
+                }
             }
+            return results
+        }
 
-            completion(.success(room))
+        return rooms.sorted {
+            $0.createdAt.dateValue() > $1.createdAt.dateValue()
         }
     }
-    
-    // ルームコードの検索
-    func searchRoom(byCode code: String, completion: @escaping (Result<Room, Error>) -> Void) {
+
+    /// 単一のルームを取得する。
+    /// - Parameter roomId: 取得対象のルーム ID。
+    /// - Returns: 対応するルーム。
+    /// - Throws: 存在しない場合は `RoomServiceError.roomNotFound`、パース不能なら `RoomServiceError.invalidRoomData`、取得失敗時は Firestore エラー。
+    func fetchRoom(roomId: String) async throws -> Room {
+        let snapshot = try await db.collection("rooms").document(roomId).getDocument()
+
+        guard snapshot.exists else {
+            throw RoomServiceError.roomNotFound
+        }
+
+        guard let room = Room(snapshot: snapshot) else {
+            throw RoomServiceError.invalidRoomData
+        }
+
+        return room
+    }
+
+    /// 招待コードからルームを検索する。
+    /// - Parameter code: 検索する招待コード（前後空白は除去し大文字化して照合）。
+    /// - Returns: 一致したルーム。
+    /// - Throws: 空文字や該当なしの場合は `RoomServiceError.roomNotFound`、パース不能なら `RoomServiceError.invalidRoomData`、取得失敗時は Firestore エラー。
+    func searchRoom(byCode code: String) async throws -> Room {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        
+
         guard !normalizedCode.isEmpty else {
-            completion(.failure(RoomServiceError.roomNotFound))
-            return
+            throw RoomServiceError.roomNotFound
         }
-        
-        db.collection("rooms")
+
+        let snapshot = try await db.collection("rooms")
             .whereField("code", isEqualTo: normalizedCode)
             .limit(to: 1)
-            .getDocuments { snapshot, error in
-                if let error {
-                    completion(.failure(error))
-                    return
-                }
-                
-                guard let document = snapshot?.documents.first else {
-                    completion(.failure(RoomServiceError.roomNotFound))
-                    return
-                }
-                
-                guard let room = Room(snapshot: document) else {
-                    completion(.failure(RoomServiceError.invalidRoomData))
-                    return
-                }
+            .getDocuments()
 
-                completion(.success(room))
-            }
-    }
-    
-    // ルーム参加
-    func joinRoom(roomId: String, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let uid = authService.currentUid else {
-            completion(.failure(AuthError.notAuthenticated))
-            return
+        guard let document = snapshot.documents.first else {
+            throw RoomServiceError.roomNotFound
         }
-        
+
+        guard let room = Room(snapshot: document) else {
+            throw RoomServiceError.invalidRoomData
+        }
+
+        return room
+    }
+
+    /// トランザクションでルームに参加し、メンバー登録とメンバー数の加算を行う。
+    /// - Parameter roomId: 参加対象のルーム ID。
+    /// - Returns: 参加したルームの ID。
+    /// - Throws: 未認証は `AuthError.notAuthenticated`、ルーム不在は `RoomServiceError.roomNotFound`、参加済みは `RoomServiceError.roomAlreadyJoined`、失敗時は Firestore エラー。
+    func joinRoom(roomId: String) async throws -> String {
+        guard let uid = authService.currentUid else {
+            throw AuthError.notAuthenticated
+        }
+
         let roomRef = db.collection("rooms").document(roomId)
         let memberRef = db.collection("roomMembers").document("\(roomId)_\(uid)")
-        
-        db.runTransaction { transaction, errorPointer in
+
+        let result = try await db.runTransaction { transaction, errorPointer in
             let roomSnapshot: DocumentSnapshot
             let memberSnapshot: DocumentSnapshot
-            
+
             do {
                 roomSnapshot = try transaction.getDocument(roomRef)
                 memberSnapshot = try transaction.getDocument(memberRef)
@@ -253,7 +231,7 @@ final class RoomService {
                 errorPointer?.pointee = error
                 return nil
             }
-            
+
             guard roomSnapshot.exists else {
                 errorPointer?.pointee = NSError(
                     domain: "RoomServiceError",
@@ -262,7 +240,7 @@ final class RoomService {
                 )
                 return nil
             }
-            
+
             if memberSnapshot.exists {
                 errorPointer?.pointee = NSError(
                     domain: "RoomServiceError",
@@ -271,62 +249,57 @@ final class RoomService {
                 )
                 return nil
             }
-            
+
             let currentMemberCount = roomSnapshot.data()?["memberCount"] as? Int ?? 0
             let now = Timestamp(date: Date())
-            
+
             transaction.setData([
                 "roomId": roomId,
                 "uid": uid,
                 "role": "member",
                 "joinedAt": now
             ], forDocument: memberRef)
-            
+
             transaction.updateData([
                 "memberCount": currentMemberCount + 1,
                 "updatedAt": now
             ], forDocument: roomRef)
-            
+
             return roomId
-        } completion: { object, error in
-            if let error {
-                completion(.failure(error))
-            } else if let roomId = object as? String {
-                completion(.success(roomId))
-            } else {
-                completion(.failure(RoomServiceError.roomNotFound))
-            }
         }
-    }
-    
-    // 自分が対象のルームのメンバーかどうか
-    func isUserMember(of roomId: String, completion: @escaping (Bool) -> Void) {
-        
-        guard let uid = authService.currentUid else {
-            completion(false)
-            return
+
+        guard let joinedRoomId = result as? String else {
+            throw RoomServiceError.roomNotFound
         }
-        
-        let memberDocId = "\(roomId)_\(uid)"
-        
-        db.collection("roomMembers")
-            .document(memberDocId)
-            .getDocument { snapshot, error in
-                
-                if let snapshot, snapshot.exists {
-                    completion(true)
-                } else {
-                    completion(false)
-                }
-            }
+
+        return joinedRoomId
     }
-    
-    // ルーム退会処理
-    func leaveRoom(room: Room, completion: @escaping (Result<Void, Error>) -> Void) {
+
+    /// 自分が対象ルームのメンバーかどうかを判定する。
+    /// - Parameter roomId: 判定対象のルーム ID。
+    /// - Returns: メンバーなら `true`。未認証・未参加・取得失敗時は `false`。
+    func isUserMember(of roomId: String) async -> Bool {
 
         guard let uid = authService.currentUid else {
-            completion(.failure(AuthError.notAuthenticated))
-            return
+            return false
+        }
+
+        let memberDocId = "\(roomId)_\(uid)"
+
+        let snapshot = try? await db.collection("roomMembers")
+            .document(memberDocId)
+            .getDocument()
+
+        return snapshot?.exists ?? false
+    }
+
+    /// ルームから退会する。オーナーの場合はルームと全メンバーを削除し、通常メンバーの場合は自分のメンバー情報削除とメンバー数の減算を行う。
+    /// - Parameter room: 退会対象のルーム。
+    /// - Throws: 未認証は `AuthError.notAuthenticated`、削除・更新失敗時は Firestore エラー。
+    func leaveRoom(room: Room) async throws {
+
+        guard let uid = authService.currentUid else {
+            throw AuthError.notAuthenticated
         }
 
         let roomRef = db.collection("rooms").document(room.id)
@@ -336,41 +309,24 @@ final class RoomService {
         // オーナーの場合
         if room.ownerUid == uid {
 
-            db.collection("roomMembers")
+            let snapshot = try await db.collection("roomMembers")
                 .whereField("roomId", isEqualTo: room.id)
-                .getDocuments { snapshot, error in
+                .getDocuments()
 
-                    if let error {
-                        completion(.failure(error))
-                        return
-                    }
+            let batch = db.batch()
 
-                    guard let documents = snapshot?.documents else {
-                        completion(.failure(RoomServiceError.roomNotFound))
-                        return
-                    }
+            for doc in snapshot.documents {
+                batch.deleteDocument(doc.reference)
+            }
 
-                    let batch = self.db.batch()
+            batch.deleteDocument(roomRef)
 
-                    for doc in documents {
-                        batch.deleteDocument(doc.reference)
-                    }
-
-                    batch.deleteDocument(roomRef)
-
-                    batch.commit { error in
-                        if let error {
-                            completion(.failure(error))
-                        } else {
-                            completion(.success(()))
-                        }
-                    }
-                }
+            try await batch.commit()
 
         } else {
 
             // 通常メンバー
-            db.runTransaction { transaction, errorPointer in
+            _ = try await db.runTransaction { transaction, errorPointer in
 
                 let roomSnapshot: DocumentSnapshot
 
@@ -391,47 +347,31 @@ final class RoomService {
                 ], forDocument: roomRef)
 
                 return nil
-
-            } completion: { _, error in
-
-                if let error {
-                    completion(.failure(error))
-                } else {
-                    completion(.success(()))
-                }
-
             }
         }
     }
-    
-    func fetchRoomMembers(
-        roomId: String,
-        completion: @escaping (Result<[RoomMember], Error>) -> Void
-    ) {
-        db.collection("roomMembers")
+
+    /// 対象ルームのメンバー一覧を取得する。
+    /// - Parameter roomId: 取得対象のルーム ID。
+    /// - Returns: メンバー配列（uid・参加日を持たないドキュメントは除外）。
+    /// - Throws: 取得失敗時は Firestore エラー。
+    func fetchRoomMembers(roomId: String) async throws -> [RoomMember] {
+        let snapshot = try await db.collection("roomMembers")
             .whereField("roomId", isEqualTo: roomId)
-            .getDocuments { snapshot, error in
-                
-                if let error {
-                    completion(.failure(error))
-                    return
-                }
-                
-                let members: [RoomMember] = snapshot?.documents.compactMap { doc in
-                    guard
-                        let uid = doc["uid"] as? String,
-                        let joinedAt = doc["joinedAt"] as? Timestamp
-                    else {
-                        return nil
-                    }
-                    
-                    return RoomMember(
-                        id: uid,
-                        joinedAt: joinedAt.dateValue()
-                    )
-                } ?? []
-                
-                completion(.success(members))
+            .getDocuments()
+
+        return snapshot.documents.compactMap { doc in
+            guard
+                let uid = doc["uid"] as? String,
+                let joinedAt = doc["joinedAt"] as? Timestamp
+            else {
+                return nil
             }
+
+            return RoomMember(
+                id: uid,
+                joinedAt: joinedAt.dateValue()
+            )
+        }
     }
 }

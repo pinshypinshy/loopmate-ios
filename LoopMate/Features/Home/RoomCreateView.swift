@@ -271,31 +271,28 @@ struct RoomCreateView: View {
                     guard !trimmedRoomName.isEmpty else { return }
                     
                     isSaving = true
-                    
-                    roomService.createRoom(
-                        name: trimmedRoomName,
-                        iconName: selectedIconName,
-                        isNumberRequired: isNumberRequired,
-                        isPhotoRequired: isPhotoRequired,
-                        startDate: startDate,
-                        endDate: endDate,
-                        selectedWeekdays: selectedWeekdays
-                    ) { result in
-                        DispatchQueue.main.async {
+
+                    Task {
+                        do {
+                            let createdRoom = try await roomService.createRoom(
+                                name: trimmedRoomName,
+                                iconName: selectedIconName,
+                                isNumberRequired: isNumberRequired,
+                                isPhotoRequired: isPhotoRequired,
+                                startDate: startDate,
+                                endDate: endDate,
+                                selectedWeekdays: selectedWeekdays
+                            )
                             isSaving = false
-                            
-                            switch result {
-                            case .success(let createdRoom):
-                                print("✅ createRoom success")
-                                print("createdRoom.id = \(createdRoom.id)")
-                                print("createdRoom.name = \(createdRoom.name)")
-                                print("createdRoom.code = \(createdRoom.code)")
-                                onCreate(createdRoom)
-                                
-                            case .failure(let error):
-                                errorMessage = error.localizedDescription
-                                showErrorAlert = true
-                            }
+                            print("✅ createRoom success")
+                            print("createdRoom.id = \(createdRoom.id)")
+                            print("createdRoom.name = \(createdRoom.name)")
+                            print("createdRoom.code = \(createdRoom.code)")
+                            onCreate(createdRoom)
+                        } catch {
+                            isSaving = false
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
                         }
                     }
                 } label: {

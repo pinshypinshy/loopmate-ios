@@ -346,19 +346,16 @@ private extension RoomView {
     func loadRoom() {
         isLoading = true
 
-        roomService.fetchRoom(roomId: roomId) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let fetchedRoom):
-                    room = fetchedRoom
-                    loadRecordDateKeys()
-                    loadRankingIfPossible()
-
-                case .failure(let error):
-                    isLoading = false
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            do {
+                let fetchedRoom = try await roomService.fetchRoom(roomId: roomId)
+                room = fetchedRoom
+                loadRecordDateKeys()
+                loadRankingIfPossible()
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
@@ -378,17 +375,14 @@ private extension RoomView {
     }
 
     func loadMembers() {
-        roomService.fetchRoomMembers(roomId: roomId) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let members):
-                    self.members = members
-                    loadUsers(uids: members.map { $0.id })
-
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            do {
+                let members = try await roomService.fetchRoomMembers(roomId: roomId)
+                self.members = members
+                loadUsers(uids: members.map { $0.id })
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

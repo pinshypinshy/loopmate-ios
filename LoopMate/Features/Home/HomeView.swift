@@ -158,38 +158,32 @@ struct HomeView: View {
     
     private func loadRooms() {
         isLoadingRooms = true
-        
-        roomService.fetchMyRooms { result in
-            DispatchQueue.main.async {
+
+        Task {
+            do {
+                let fetchedRooms = try await roomService.fetchMyRooms()
                 isLoadingRooms = false
-                
-                switch result {
-                case .success(let fetchedRooms):
-                    rooms = fetchedRooms
-                    loadProgresses(for: fetchedRooms)
-                    
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+                rooms = fetchedRooms
+                loadProgresses(for: fetchedRooms)
+            } catch {
+                isLoadingRooms = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
-    
+
     private func loadProgresses(for rooms: [Room]) {
         progressMap = [:]
-        
+
         for room in rooms {
-            progressService.fetchMyProgressRate(room: room) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success(let rate):
-                        let percent = Int((rate * 100).rounded())
-                        progressMap[room.id] = "達成状況 \(percent)%"
-                        
-                    case .failure:
-                        progressMap[room.id] = "達成状況 --%"
-                    }
+            Task {
+                do {
+                    let rate = try await progressService.fetchMyProgressRate(room: room)
+                    let percent = Int((rate * 100).rounded())
+                    progressMap[room.id] = "達成状況 \(percent)%"
+                } catch {
+                    progressMap[room.id] = "達成状況 --%"
                 }
             }
         }

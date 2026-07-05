@@ -102,11 +102,11 @@ struct RoomMenuView: View {
                     }
                     
                     Button("退会する", role: .destructive) {
-                        roomService.leaveRoom(room: room) { result in
-                            switch result {
-                            case .success:
+                        Task {
+                            do {
+                                try await roomService.leaveRoom(room: room)
                                 onLeaveCompleted?()
-                            case .failure(let error):
+                            } catch {
                                 print(error)
                             }
                         }

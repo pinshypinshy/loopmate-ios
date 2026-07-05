@@ -77,35 +77,28 @@ struct MissionView: View {
     
     private func loadMissions() {
         guard let uid = try? authService.requireUid() else { return }
-        
+
         isLoading = true
-        
-        roomService.fetchMyRooms { result in
-            switch result {
-            case .failure:
-                isLoading = false
-                
-            case .success(let rooms):
-                
+
+        Task {
+            do {
+                let rooms = try await roomService.fetchMyRooms()
+
                 let today = Date()
                 let todayRooms = rooms.filter { $0.isScheduled(on: today) }
-                
-                Task {
-                    do {
-                        let records = try await missionService.fetchTodayRecords(uid: uid)
-                        isLoading = false
-                        let completedRoomIds = Set(records.map { $0.roomId })
-                        self.missions = todayRooms.map { room in
-                            TodayAllRoomsMissionData(
-                                id: room.id,
-                                room: room,
-                                isCompleted: completedRoomIds.contains(room.id)
-                            )
-                        }
-                    } catch {
-                        isLoading = false
-                    }
+
+                let records = try await missionService.fetchTodayRecords(uid: uid)
+                isLoading = false
+                let completedRoomIds = Set(records.map { $0.roomId })
+                self.missions = todayRooms.map { room in
+                    TodayAllRoomsMissionData(
+                        id: room.id,
+                        room: room,
+                        isCompleted: completedRoomIds.contains(room.id)
+                    )
                 }
+            } catch {
+                isLoading = false
             }
         }
     }

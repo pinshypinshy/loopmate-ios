@@ -96,48 +96,39 @@ struct RoomEnterView: View {
         hasSearched = true
         foundRoom = nil
         
-        roomService.searchRoom(byCode: normalizedCode) { result in
-            DispatchQueue.main.async {
+        Task {
+            do {
+                let room = try await roomService.searchRoom(byCode: normalizedCode)
+                let member = await roomService.isUserMember(of: room.id)
                 isSearching = false
-                
-                switch result {
-                case .success(let room):
-                    roomService.isUserMember(of: room.id) { member in
-                        DispatchQueue.main.async {
-                            foundRoom = room
-                            isMember = member
-                        }
-                    }
-                    
-                case .failure(let error):
-                    if let roomError = error as? RoomServiceError,
-                       roomError == .roomNotFound {
-                        foundRoom = nil
-                    } else {
-                        errorMessage = error.localizedDescription
-                        showErrorAlert = true
-                    }
+                foundRoom = room
+                isMember = member
+            } catch {
+                isSearching = false
+                if let roomError = error as? RoomServiceError,
+                   roomError == .roomNotFound {
+                    foundRoom = nil
+                } else {
+                    errorMessage = error.localizedDescription
+                    showErrorAlert = true
                 }
             }
         }
     }
-    
+
     private func joinRoom(_ room: Room) {
         isJoining = true
-        
-        roomService.joinRoom(roomId: room.id) { result in
-            DispatchQueue.main.async {
+
+        Task {
+            do {
+                let roomId = try await roomService.joinRoom(roomId: room.id)
                 isJoining = false
-                
-                switch result {
-                case .success(let roomId):
-                    isMember = true
-                    onJoin(roomId)
-                    
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+                isMember = true
+                onJoin(roomId)
+            } catch {
+                isJoining = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
