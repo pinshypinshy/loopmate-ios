@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct FriendRequestsView: View {
     
@@ -16,7 +15,7 @@ struct FriendRequestsView: View {
     @State private var showErrorAlert = false
     
     private let friendService = FriendService()
-    
+
     var body: some View {
         ZStack {
             Color(.orange).opacity(Theme.backgroundOpacity).ignoresSafeArea()
@@ -60,74 +59,39 @@ struct FriendRequestsView: View {
     }
     
     private func fetchRequests() {
-        guard let myUid = Auth.auth().currentUser?.uid else {
-            errorMessage = "ログイン状態を確認できませんでした"
-            showErrorAlert = true
-            return
-        }
-        
         isLoading = true
         
-        friendService.fetchIncomingFriendRequests(myUid: myUid) { result in
-            DispatchQueue.main.async {
-                isLoading = false
-                
-                switch result {
-                case .success(let requests):
-                    self.requests = requests
-                    
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            defer { isLoading = false }
+            do {
+                requests = try await friendService.fetchIncomingFriendRequests()
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
     
     private func accept(_ request: FriendRequest) {
-        guard let myUid = Auth.auth().currentUser?.uid else {
-            errorMessage = "ログイン状態を確認できませんでした"
-            showErrorAlert = true
-            return
-        }
-        
-        friendService.acceptFriendRequest(
-            myUid: myUid,
-            otherUid: request.fromUid
-        ) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success:
-                    requests.removeAll { $0.id == request.id }
-                    
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            do {
+                try await friendService.acceptFriendRequest(otherUid: request.fromUid)
+                requests.removeAll { $0.id == request.id }
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
     
     private func reject(_ request: FriendRequest) {
-        guard let myUid = Auth.auth().currentUser?.uid else {
-            errorMessage = "ログイン状態を確認できませんでした"
-            showErrorAlert = true
-            return
-        }
-        
-        friendService.rejectFriendRequest(
-            myUid: myUid,
-            otherUid: request.fromUid
-        ) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success:
-                    requests.removeAll { $0.id == request.id }
-                    
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            do {
+                try await friendService.rejectFriendRequest(otherUid: request.fromUid)
+                requests.removeAll { $0.id == request.id }
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

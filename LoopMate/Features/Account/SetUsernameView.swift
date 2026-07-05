@@ -43,10 +43,8 @@ struct SetUsernameView: View {
                         isFocused = true
                     }
                     .onChange(of: username) { newValue in
-                        let filtered = newValue.lowercased().filter { char in
-                            char.isASCII && "abcdefghijklmnopqrstuvwxyz0123456789_".contains(char)
-                        }
-                        
+                        let filtered = User.sanitizeUsername(newValue)
+
                         if filtered != newValue {
                             username = filtered
                         }
@@ -96,8 +94,8 @@ struct SetUsernameView: View {
         
         guard !trimmedUsername.isEmpty else { return }
         
-        guard isValidUsername(trimmedUsername) else {
-            alertMessage = "ユーザーIDは小文字英数字と_のみ使用できます"
+        guard User.isValidUsername(trimmedUsername) else {
+            alertMessage = UserError.invalidUsername.localizedDescription
             showAlert = true
             return
         }
@@ -113,7 +111,7 @@ struct SetUsernameView: View {
                 if isAvailable {
                     shouldNavigate = true
                 } else {
-                    alertMessage = "このユーザーIDはすでに使われています"
+                    alertMessage = UserError.usernameTaken.localizedDescription
                     showAlert = true
                 }
 
@@ -122,11 +120,6 @@ struct SetUsernameView: View {
                 showAlert = true
             }
         }
-    }
-    
-    private func isValidUsername(_ username: String) -> Bool {
-        let regex = "^[a-z0-9_]+$"
-        return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: username)
     }
 }
 

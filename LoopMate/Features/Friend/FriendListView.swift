@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct FriendListView: View {
     
@@ -63,37 +62,22 @@ struct FriendListView: View {
     }
     
     private func fetchFriends() {
-        guard let myUid = Auth.auth().currentUser?.uid else {
-            errorMessage = "ログイン状態を確認できませんでした"
-            showErrorAlert = true
-            return
-        }
-        
         isLoading = true
         
-        friendService.fetchFriendIds(uid: myUid) { result in
-            switch result {
-            case .success(let friendIds):
-                if friendIds.isEmpty {
-                    DispatchQueue.main.async {
-                        isLoading = false
-                        friends = []
-                    }
+        Task {
+            defer { isLoading = false }
+            do {
+                let friendIds = try await friendService.fetchFriendIds()
+                
+                guard !friendIds.isEmpty else {
+                    friends = []
                     return
                 }
                 
-                Task { @MainActor in
-                    let users = await userService.fetchUsers(uids: friendIds)
-                    isLoading = false
-                    friends = users
-                }
-                
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    isLoading = false
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+                friends = await userService.fetchUsers(uids: friendIds)
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

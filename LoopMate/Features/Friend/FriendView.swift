@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct FriendView: View {
     
@@ -19,6 +18,7 @@ struct FriendView: View {
     
     private let userService = UserService()
     private let friendService = FriendService()
+    private let authService = AuthService()
     
     var body: some View {
         NavigationStack {
@@ -139,19 +139,15 @@ struct FriendView: View {
             searchedUser = nil
             return
         }
-        
-        guard let myUid = Auth.auth().currentUser?.uid else {
-            errorMessage = "ログイン状態を確認できませんでした"
-            showErrorAlert = true
-            return
-        }
-        
+
         isSearching = true
-        
+
         Task {
             defer { isSearching = false }
 
             do {
+                let myUid = try authService.requireUid()
+
                 let user = try await userService.fetchUserByUsernameKey(trimmed)
 
                 guard let user else {
@@ -175,37 +171,24 @@ struct FriendView: View {
     }
     
     private func fetchRelationState(for user: User) {
-        guard let myUid = Auth.auth().currentUser?.uid else { return }
-        
-        friendService.fetchRelationState(myUid: myUid, otherUid: user.id) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let state):
-                    relationState = state
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            do {
+                relationState = try await friendService.fetchRelationState(otherUid: user.id)
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
     
     private func sendFriendRequest(to user: User) {
-        guard let myUid = Auth.auth().currentUser?.uid else {
-            errorMessage = "ログイン状態を確認できませんでした"
-            showErrorAlert = true
-            return
-        }
-        
-        friendService.sendFriendRequest(fromUid: myUid, toUid: user.id) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success:
-                    relationState = .outgoingPending
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+        Task {
+            do {
+                try await friendService.sendFriendRequest(toUid: user.id)
+                relationState = .outgoingPending
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

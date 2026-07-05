@@ -6,17 +6,19 @@
 //
 
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
 
 struct ProfileEditView: View {
-    
+
     @Environment(\.dismiss) private var dismiss
-    
-    @Binding var username: String
+
     @Binding var displayName: String
     @Binding var iconName: String
-    
+
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
+
+    private let userService = UserService()
+
     var body: some View {
         
         ZStack {
@@ -62,25 +64,24 @@ struct ProfileEditView: View {
                 .tint(.orange)
             }
         }
-    }
-    
-    private func saveProfile() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            print("uidが取得できなかった")
-            return
+        .alert("エラー", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
         }
-        
-        let db = Firestore.firestore()
-        
-        db.collection("users").document(uid).updateData([
-            "displayName": displayName,
-            "iconName": iconName
-        ]) { error in
-            if let error = error {
-                print("編集保存失敗: \(error)")
-            } else {
-                print("編集保存成功")
+    }
+
+    private func saveProfile() {
+        Task {
+            do {
+                try await userService.updateProfile(
+                    displayName: displayName,
+                    iconName: iconName
+                )
                 dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
@@ -89,7 +90,6 @@ struct ProfileEditView: View {
 #Preview {
     NavigationStack {
         ProfileEditView(
-            username: .constant("test_user"),
             displayName: .constant("テストユーザー"),
             iconName: .constant("person.crop.circle.fill")
         )

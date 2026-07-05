@@ -8,6 +8,19 @@
 import Foundation
 import FirebaseAuth
 
+/// 認証まわりで発生するエラー。
+enum AuthError: LocalizedError {
+    /// ログイン中のユーザーを特定できなかった。
+    case notAuthenticated
+
+    var errorDescription: String? {
+        switch self {
+        case .notAuthenticated:
+            return "ログイン状態を確認できませんでした"
+        }
+    }
+}
+
 /// 認証まわりの責務を担うサービス。
 /// 画面側は Auth を直接触らず、このサービス経由でログイン状態を扱う。
 final class AuthService {
@@ -15,6 +28,14 @@ final class AuthService {
     /// 現在ログイン中のユーザーの uid。未ログインなら nil。
     var currentUid: String? {
         Auth.auth().currentUser?.uid
+    }
+
+    /// ログイン中のユーザーの uid を返す。未ログインなら `AuthError.notAuthenticated` を throw する。
+    func requireUid() throws -> String {
+        guard let uid = currentUid else {
+            throw AuthError.notAuthenticated
+        }
+        return uid
     }
 
     /// 未ログインのときだけ匿名ログインし、確定した uid を返す。

@@ -6,17 +6,22 @@
 //
 
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
 
 struct SetIconView: View {
-    
+
     @Binding var username: String
     @Binding var displayName: String
     @Binding var selectedIconName: String
-    
+
     let onCompleted: () -> Void
-    
+
+    @State private var isSaving = false
+    @State private var alertMessage = ""
+    @State private var showAlert = false
+
+    private let authService = AuthService()
+    private let userService = UserService()
+
     let iconCandidates = [
         "person.crop.circle.fill",
         "person.circle.fill",
@@ -70,6 +75,9 @@ struct SetIconView: View {
         }
         .navigationTitle("アカウント登録")
         .navigationBarTitleDisplayMode(.inline)
+        .alert(alertMessage, isPresented: $showAlert) {
+            Button("OK", role: .cancel) { }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -80,64 +88,31 @@ struct SetIconView: View {
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.circle)
                 .tint(.orange)
+                .disabled(isSaving)
             }
         }
     }
     
     func registerAccount() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            print("uidが取得できなかった")
-            return
-        }
-        
-        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let usernameKey = trimmedUsername.lowercased()
-        
-        guard isValidUsername(trimmedUsername) else {
-            print("不正なユーザーID")
-            return
-        }
-        
-        let db = Firestore.firestore()
-        
-        db.collection("users")
-            .whereField("usernameKey", isEqualTo: usernameKey)
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("確認失敗: \(error)")
-                    return
-                }
-                
-                let documents = snapshot?.documents ?? []
-                let existsOtherUser = documents.contains { $0.documentID != uid }
-                
-                if existsOtherUser {
-                    print("このユーザーIDはすでに使われています")
-                    return
-                }
-                
-                let data: [String: Any] = [
-                    "username": trimmedUsername,
-                    "usernameKey": usernameKey,
-                    "displayName": trimmedDisplayName,
-                    "iconName": selectedIconName
-                ]
-                
-                db.collection("users").document(uid).setData(data) { error in
-                    if let error = error {
-                        print("保存失敗: \(error)")
-                    } else {
-                        print("保存成功")
-                        onCompleted()
-                    }
-                }
-            }
-    }
+        isSaving = true
 
-    private func isValidUsername(_ username: String) -> Bool {
-        let regex = "^[a-z0-9_]+$"
-        return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: username)
+        Task {
+            defer { isSaving = false }
+
+            do {
+                let uid = try authService.requireUid()
+                try await userService.saveUserProfile(
+                    uid: uid,
+                    username: username,
+                    displayName: displayName,
+                    iconName: selectedIconName
+                )
+                onCompleted()
+            } catch {
+                alertMessage = error.localizedDescription
+                showAlert = true
+            }
+        }
     }
 }
 

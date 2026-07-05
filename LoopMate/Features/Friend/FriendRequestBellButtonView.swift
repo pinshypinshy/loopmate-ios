@@ -6,14 +6,13 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct FriendRequestBellButtonView: View {
     
     @State private var requestCount: Int = 0
     
     private let friendService = FriendService()
-    
+
     var previewCount: Int? = nil
     
     var body: some View {
@@ -58,19 +57,11 @@ struct FriendRequestBellButtonView: View {
     private func fetchRequestCount() {
         if previewCount != nil { return }
         
-        guard let myUid = Auth.auth().currentUser?.uid else {
-            requestCount = 0
-            return
-        }
-        
-        friendService.fetchIncomingFriendRequests(myUid: myUid) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let requests):
-                    requestCount = requests.count
-                case .failure:
-                    requestCount = 0
-                }
+        Task {
+            do {
+                requestCount = try await friendService.fetchIncomingFriendRequestCount()
+            } catch {
+                // バッジ表示のため、取得失敗時はエラーを出さず前回値を維持する
             }
         }
     }

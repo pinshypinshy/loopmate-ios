@@ -6,16 +6,19 @@
 //
 
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
 
 struct ProfileView: View {
-    
+
     @State private var username: String = ""
     @State private var displayName: String = ""
     @State private var iconName: String = "person.crop.circle.fill"
     @State private var friendCount: Int = 0
-    
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
+
+    private let userService = UserService()
+    private let friendService = FriendService()
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -54,7 +57,6 @@ struct ProfileView: View {
                         
                         NavigationLink {
                             ProfileEditView(
-                                username: $username,
                                 displayName: $displayName,
                                 iconName: $iconName
                             )
@@ -86,54 +88,37 @@ struct ProfileView: View {
             fetchProfile()
             fetchFriendCount()
         }
+        .alert("エラー", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
     }
-    
+
     private func fetchProfile() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            print("uidが取得できなかった")
-            return
-        }
-        
-        let db = Firestore.firestore()
-        
-        db.collection("users").document(uid).getDocument { snapshot, error in
-            if let error = error {
-                print("プロフィール取得失敗: \(error)")
-                return
+        Task {
+            do {
+                guard let user = try await userService.fetchCurrentUser() else { return }
+
+                username = user.username
+                displayName = user.displayName
+                iconName = user.iconName
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
-            
-            guard let data = snapshot?.data() else {
-                print("プロフィールデータが存在しない")
-                return
-            }
-            
-            username = data["username"] as? String ?? ""
-            displayName = data["displayName"] as? String ?? ""
-            iconName = data["iconName"] as? String ?? "person.crop.circle.fill"
-            
-            print("プロフィール取得成功")
         }
     }
-    
+
     private func fetchFriendCount() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            print("uidが取得できなかった")
-            return
-        }
-        
-        let db = Firestore.firestore()
-        
-        db.collection("users")
-            .document(uid)
-            .collection("friends")
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("フレンド数取得失敗: \(error)")
-                    return
-                }
-                
-                friendCount = snapshot?.documents.count ?? 0
+        Task {
+            do {
+                friendCount = try await friendService.fetchFriendIds().count
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
+        }
     }
 }
 
