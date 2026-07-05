@@ -20,7 +20,7 @@
 - SwiftUI
 - Firebase Authentication（匿名認証）
 - Cloud Firestore
-- Swift Concurrency（async/await 一部使用）
+- Swift Concurrency（async/await に全面移行済み）
 
 ---
 
@@ -33,9 +33,15 @@
 
 - Service 層
   - Firebase との通信やデータ取得・更新処理を集約
+  - 認証・セッション管理・進捗計算などの関心事ごとにクラスを分割
+    （`AuthService` / `SessionService` / `RoomService` / `MissionService` /
+    　`FriendService` / `UserService` / `ProgressService`）
 
 例として、ルーム関連の処理は `RoomService` に集約し、  
-View から直接 Firestore を操作しない構造としています。
+View から直接 Firestore を操作しない構造としています。  
+また、進捗計算のロジックは `ProgressService` に、  
+UID 解決やスケジュール判定は Service 層／Model 側に集約し、  
+View に業務ロジックが漏れないようにしています。
 
 ---
 
@@ -81,10 +87,10 @@ View から直接 Firestore を操作しない構造としています。
 ## 課題・改善点
 
 - ViewModel 層が未導入であり、一部ロジックが View に残っている
-- 非同期処理が async/await と callback の混在状態
-- Service クラスの責務が肥大化している（特に RoomService）
+- Service クラスの責務が肥大化しやすい（特に RoomService）
 
-今後は MVVM 構造への移行や、非同期処理の統一を進める予定です。
+非同期処理は callback を廃止し、async/await へ全面移行済みです。  
+今後は MVVM 構造への移行を進め、View に残るロジックの整理を予定しています。
 
 ---
 
@@ -103,8 +109,8 @@ View から直接 Firestore を操作しない構造としています。
 
 ## 今後の展望
 
-- ViewModel の導入による設計改善
-- 非同期処理の async/await への統一
+- ViewModel の導入による設計改善（MVVM 化）
+- Service 層のさらなる責務分割
 - テストコードの追加
 - UI/UX の改善
 
