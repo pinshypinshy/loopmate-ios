@@ -391,8 +391,6 @@
 				EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = .claude;
 				EXCLUDED_SOURCE_FILE_NAMES = "LoopMate/.claude/**";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "ミッション実施記録のために写真を撮影します";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ミッション実施記録のために写真を選択します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -428,8 +426,6 @@
 				EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = .claude;
 				EXCLUDED_SOURCE_FILE_NAMES = "LoopMate/.claude/**";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "ミッション実施記録のために写真を撮影します";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ミッション実施記録のために写真を選択します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

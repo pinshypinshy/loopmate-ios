@@ -17,6 +17,10 @@ struct RootView: View {
             .task {
                 await startSession()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .accountDeleted)) { _ in
+                // アカウント削除後は匿名で再ログインし、登録フローを再表示する。
+                Task { await startSession() }
+            }
             .fullScreenCover(isPresented: $isRegistrationPresented) {
                 AccountRegistrationFlowView(
                     onCompleted: {

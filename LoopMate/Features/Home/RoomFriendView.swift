@@ -18,9 +18,12 @@ struct RoomFriendView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
+    @State private var showReportSheet = false
+    @State private var showBlockConfirm = false
 
     private let roomService = RoomService()
     private let missionService = MissionService()
+    private let blockService = BlockService()
 
     @State private var selectedDate: Date = .now
     @State private var displayYear = Calendar.current.component(.year, from: .now)
@@ -62,6 +65,24 @@ struct RoomFriendView: View {
                     Image(systemName: "chevron.left")
                 }
             }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label("通報", systemImage: "exclamationmark.bubble")
+                    }
+
+                    Button(role: .destructive) {
+                        showBlockConfirm = true
+                    } label: {
+                        Label("ブロック", systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+            }
         }
         .onAppear {
             loadRoom()
@@ -69,6 +90,17 @@ struct RoomFriendView: View {
         }
         .onChange(of: selectedDate) { _, _ in
             loadSelectedRecord()
+        }
+        .sheet(isPresented: $showReportSheet) {
+            ReportView(reportedUid: targetUser.id, contextType: .missionRecord, contextId: roomId)
+        }
+        .alert("このユーザーをブロックしますか？", isPresented: $showBlockConfirm) {
+            Button("キャンセル", role: .cancel) { }
+            Button("ブロック", role: .destructive) {
+                blockUser()
+            }
+        } message: {
+            Text("ブロックすると、お互いのフレンド関係は解除され、相手のコンテンツは表示されなくなります。")
         }
         .alert("記録の取得に失敗しました", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
@@ -250,6 +282,18 @@ private extension RoomFriendView {
                 selectedRecord = record
             } catch {
                 isLoadingSelectedRecord = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
+        }
+    }
+
+    func blockUser() {
+        Task {
+            do {
+                try await blockService.blockUser(targetUser.id)
+                dismiss()
+            } catch {
                 errorMessage = error.localizedDescription
                 showErrorAlert = true
             }

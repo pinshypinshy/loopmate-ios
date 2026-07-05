@@ -19,6 +19,7 @@ struct FriendView: View {
     private let userService = UserService()
     private let friendService = FriendService()
     private let authService = AuthService()
+    private let blockService = BlockService()
     
     var body: some View {
         NavigationStack {
@@ -156,6 +157,11 @@ struct FriendView: View {
                 }
 
                 if user.id == myUid {
+                    searchedUser = nil
+                    return
+                }
+
+                if await blockService.isBlockedByMe(user.id) {
                     searchedUser = nil
                     return
                 }

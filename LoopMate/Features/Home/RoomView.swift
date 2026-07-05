@@ -32,6 +32,7 @@ struct RoomView: View {
     private let roomService = RoomService()
     private let missionService = MissionService()
     private let userService = UserService()
+    private let blockService = BlockService()
 
     @State private var selectedDate: Date = .now
     @State private var displayYear = Calendar.current.component(.year, from: Date())
@@ -378,8 +379,10 @@ private extension RoomView {
         Task {
             do {
                 let members = try await roomService.fetchRoomMembers(roomId: roomId)
-                self.members = members
-                loadUsers(uids: members.map { $0.id })
+                let blockedUids = (try? await blockService.fetchBlockedUids()) ?? []
+                let visibleMembers = members.filter { !blockedUids.contains($0.id) }
+                self.members = visibleMembers
+                loadUsers(uids: visibleMembers.map { $0.id })
             } catch {
                 errorMessage = error.localizedDescription
                 showErrorAlert = true

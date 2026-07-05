@@ -16,6 +16,7 @@ struct FriendListView: View {
     
     private let friendService = FriendService()
     private let userService = UserService()
+    private let blockService = BlockService()
     
     var body: some View {
         ZStack {
@@ -68,13 +69,16 @@ struct FriendListView: View {
             defer { isLoading = false }
             do {
                 let friendIds = try await friendService.fetchFriendIds()
-                
+
                 guard !friendIds.isEmpty else {
                     friends = []
                     return
                 }
-                
-                friends = await userService.fetchUsers(uids: friendIds)
+
+                let blockedUids = try await blockService.fetchBlockedUids()
+                let visibleIds = friendIds.filter { !blockedUids.contains($0) }
+
+                friends = await userService.fetchUsers(uids: visibleIds)
             } catch {
                 errorMessage = error.localizedDescription
                 showErrorAlert = true

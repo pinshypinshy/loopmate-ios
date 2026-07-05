@@ -79,8 +79,14 @@ struct ProfileView: View {
             .navigationTitle("プロフィール")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     FriendRequestBellButtonView()
+                    
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
                 }
             }
         }

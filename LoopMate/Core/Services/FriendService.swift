@@ -8,10 +8,24 @@
 import Foundation
 import FirebaseFirestore
 
+/// フレンド機能で発生するエラー。
+enum FriendError: LocalizedError {
+    /// ブロック関係のため操作できない。
+    case blocked
+
+    var errorDescription: String? {
+        switch self {
+        case .blocked:
+            return "このユーザーには操作できません"
+        }
+    }
+}
+
 final class FriendService {
 
     private let db = Firestore.firestore()
     private let authService = AuthService()
+    private let blockService = BlockService()
 
     /// ログイン中のユーザーと相手ユーザーのフレンド関係の状態を取得する。
     ///
@@ -66,6 +80,10 @@ final class FriendService {
         toUid: String
     ) async throws {
         let fromUid = try authService.requireUid()
+
+        if await blockService.isBlockedByMe(toUid) {
+            throw FriendError.blocked
+        }
 
         let state = try await fetchRelationState(otherUid: toUid)
 

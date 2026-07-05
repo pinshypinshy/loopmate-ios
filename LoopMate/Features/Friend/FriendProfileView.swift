@@ -10,13 +10,18 @@ import SwiftUI
 struct FriendProfileView: View {
     
     let user: User
-    
+
+    @Environment(\.dismiss) private var dismiss
+
     @State private var relationState: FriendRelationState = .none
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
     @State private var isProcessing = false
-    
+    @State private var showReportSheet = false
+    @State private var showBlockConfirm = false
+
     private let friendService = FriendService()
+    private let blockService = BlockService()
     
     var body: some View {
         ZStack {
@@ -55,21 +60,44 @@ struct FriendProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                if relationState == .friend {
-                    Menu {
+                Menu {
+                    if relationState == .friend {
                         Button(role: .destructive) {
                             removeFriend()
                         } label: {
-                            Text("フレンド解除")
+                            Label("フレンド解除", systemImage: "person.badge.minus")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis")
                     }
+
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label("通報", systemImage: "exclamationmark.bubble")
+                    }
+
+                    Button(role: .destructive) {
+                        showBlockConfirm = true
+                    } label: {
+                        Label("ブロック", systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
                 }
             }
         }
         .onAppear {
             fetchRelationState()
+        }
+        .sheet(isPresented: $showReportSheet) {
+            ReportView(reportedUid: user.id, contextType: .user)
+        }
+        .alert("このユーザーをブロックしますか？", isPresented: $showBlockConfirm) {
+            Button("キャンセル", role: .cancel) { }
+            Button("ブロック", role: .destructive) {
+                blockUser()
+            }
+        } message: {
+            Text("ブロックすると、お互いのフレンド関係は解除され、相手のコンテンツは表示されなくなります。")
         }
         .alert("エラー", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
@@ -235,12 +263,27 @@ struct FriendProfileView: View {
     
     private func removeFriend() {
         isProcessing = true
-        
+
         Task {
             defer { isProcessing = false }
             do {
                 try await friendService.removeFriend(otherUid: user.id)
                 relationState = .none
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
+        }
+    }
+
+    private func blockUser() {
+        isProcessing = true
+
+        Task {
+            defer { isProcessing = false }
+            do {
+                try await blockService.blockUser(user.id)
+                dismiss()
             } catch {
                 errorMessage = error.localizedDescription
                 showErrorAlert = true
