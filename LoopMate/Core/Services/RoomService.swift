@@ -6,13 +6,30 @@
 //
 
 import Foundation
-import FirebaseAuth
 import FirebaseFirestore
 
+enum RoomServiceError: LocalizedError, Equatable {
+    case roomNotFound
+    case invalidRoomData
+    case roomAlreadyJoined
+
+    var errorDescription: String? {
+        switch self {
+        case .roomNotFound:
+            return "該当するルームが見つかりませんでした"
+        case .invalidRoomData:
+            return "ルームデータの形式が不正です"
+        case .roomAlreadyJoined:
+            return "このルームにはすでに参加しています"
+        }
+    }
+}
+
 final class RoomService {
-    
+
     private let db = Firestore.firestore()
-    
+    private let authService = AuthService()
+
     func createRoom(
         name: String,
         iconName: String,
@@ -23,8 +40,8 @@ final class RoomService {
         selectedWeekdays: [Bool],
         completion: @escaping (Result<Room, Error>) -> Void
     ) {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            completion(.failure(RoomServiceError.userNotSignedIn))
+        guard let uid = authService.currentUid else {
+            completion(.failure(AuthError.notAuthenticated))
             return
         }
         
@@ -94,8 +111,8 @@ final class RoomService {
     
     // 自分の所属ルーム一覧を取得する関数
     func fetchMyRooms(completion: @escaping (Result<[Room], Error>) -> Void) {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            completion(.failure(RoomServiceError.userNotSignedIn))
+        guard let uid = authService.currentUid else {
+            completion(.failure(AuthError.notAuthenticated))
             return
         }
         
@@ -217,8 +234,8 @@ final class RoomService {
     
     // ルーム参加
     func joinRoom(roomId: String, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            completion(.failure(RoomServiceError.userNotSignedIn))
+        guard let uid = authService.currentUid else {
+            completion(.failure(AuthError.notAuthenticated))
             return
         }
         
@@ -285,7 +302,7 @@ final class RoomService {
     // 自分が対象のルームのメンバーかどうか
     func isUserMember(of roomId: String, completion: @escaping (Bool) -> Void) {
         
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = authService.currentUid else {
             completion(false)
             return
         }
@@ -307,8 +324,8 @@ final class RoomService {
     // ルーム退会処理
     func leaveRoom(room: Room, completion: @escaping (Result<Void, Error>) -> Void) {
 
-        guard let uid = Auth.auth().currentUser?.uid else {
-            completion(.failure(RoomServiceError.userNotSignedIn))
+        guard let uid = authService.currentUid else {
+            completion(.failure(AuthError.notAuthenticated))
             return
         }
 
@@ -416,25 +433,5 @@ final class RoomService {
                 
                 completion(.success(members))
             }
-    }
-}
-
-enum RoomServiceError: LocalizedError, Equatable {
-    case userNotSignedIn
-    case roomNotFound
-    case invalidRoomData
-    case roomAlreadyJoined
-    
-    var errorDescription: String? {
-        switch self {
-        case .userNotSignedIn:
-            return "ログイン状態を確認できませんでした"
-        case .roomNotFound:
-            return "該当するルームが見つかりませんでした"
-        case .invalidRoomData:
-            return "ルームデータの形式が不正です"
-        case .roomAlreadyJoined:
-            return "このルームにはすでに参加しています"
-        }
     }
 }

@@ -230,18 +230,15 @@ private extension RoomFriendView {
     }
 
     func loadRecordDateKeys() {
-        missionService.fetchRecordDateKeys(roomId: roomId, userId: targetUser.id) { result in
-            DispatchQueue.main.async {
+        Task {
+            do {
+                let keys = try await missionService.fetchRecordDateKeys(roomId: roomId, userId: targetUser.id)
                 isLoading = false
-
-                switch result {
-                case .success(let keys):
-                    recordDateKeys = keys
-
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+                recordDateKeys = keys
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
@@ -249,18 +246,15 @@ private extension RoomFriendView {
     func loadSelectedRecord() {
         isLoadingSelectedRecord = true
 
-        missionService.fetchRecord(roomId: roomId, userId: targetUser.id, date: selectedDate) { result in
-            DispatchQueue.main.async {
+        Task {
+            do {
+                let record = try await missionService.fetchRecord(roomId: roomId, userId: targetUser.id, date: selectedDate)
                 isLoadingSelectedRecord = false
-
-                switch result {
-                case .success(let record):
-                    selectedRecord = record
-
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+                selectedRecord = record
+            } catch {
+                isLoadingSelectedRecord = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

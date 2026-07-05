@@ -364,18 +364,15 @@ private extension RoomView {
     }
 
     func loadRecordDateKeys() {
-        missionService.fetchMyRecordDateKeys(roomId: roomId) { result in
-            DispatchQueue.main.async {
+        Task {
+            do {
+                let keys = try await missionService.fetchMyRecordDateKeys(roomId: roomId)
                 isLoading = false
-
-                switch result {
-                case .success(let keys):
-                    recordDateKeys = keys
-
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+                recordDateKeys = keys
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
@@ -412,26 +409,23 @@ private extension RoomView {
     func loadRanking() {
         guard let room else { return }
 
-        missionService.fetchRecordsForRoom(roomId: roomId) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let records):
-                    var items: [(user: User, rate: Double)] = []
+        Task {
+            do {
+                let records = try await missionService.fetchRecordsForRoom(roomId: roomId)
+                var items: [(user: User, rate: Double)] = []
 
-                    for member in members {
-                        guard let user = users.first(where: { $0.id == member.id }) else { continue }
-                        let rate = calculateRate(member: member, records: records, room: room)
-                        items.append((user: user, rate: rate))
-                    }
-
-                    ranking = items.sorted {
-                        $0.rate == $1.rate ? $0.user.id < $1.user.id : $0.rate > $1.rate
-                    }
-
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
+                for member in members {
+                    guard let user = users.first(where: { $0.id == member.id }) else { continue }
+                    let rate = calculateRate(member: member, records: records, room: room)
+                    items.append((user: user, rate: rate))
                 }
+
+                ranking = items.sorted {
+                    $0.rate == $1.rate ? $0.user.id < $1.user.id : $0.rate > $1.rate
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
@@ -439,18 +433,15 @@ private extension RoomView {
     func loadSelectedRecord() {
         isLoadingSelectedRecord = true
 
-        missionService.fetchMyRecord(roomId: roomId, date: selectedDate) { result in
-            DispatchQueue.main.async {
+        Task {
+            do {
+                let record = try await missionService.fetchMyRecord(roomId: roomId, date: selectedDate)
                 isLoadingSelectedRecord = false
-
-                switch result {
-                case .success(let record):
-                    selectedRecord = record
-
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
-                }
+                selectedRecord = record
+            } catch {
+                isLoadingSelectedRecord = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

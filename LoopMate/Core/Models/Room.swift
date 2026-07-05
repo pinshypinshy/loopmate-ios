@@ -127,4 +127,19 @@ extension Room {
     var endDateValue: Date? {
         endDate?.dateValue()
     }
+
+    /// 指定した日にこの部屋のミッションが実施対象かどうかを判定する
+    /// （曜日・開始日・終了日の条件をすべて満たすとき true）
+    func isScheduled(on date: Date) -> Bool {
+        let calendar = Calendar(identifier: .gregorian)
+        let weekday = calendar.component(.weekday, from: date) - 1 // 日曜=0
+
+        guard weekday < selectedWeekdays.count, selectedWeekdays[weekday] else { return false }
+
+        if startDateValue > date { return false }
+
+        if let end = endDateValue, date > end { return false }
+
+        return true
+    }
 }

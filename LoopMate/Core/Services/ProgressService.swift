@@ -6,22 +6,22 @@
 //
 
 import Foundation
-import FirebaseAuth
 
 final class ProgressService {
-    
+
     private let roomService = RoomService()
     private let missionService = MissionService()
-    
+    private let authService = AuthService()
+
     func fetchMyProgressRate(
         room: Room,
         completion: @escaping (Result<Double, Error>) -> Void
     ) {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            completion(.failure(RoomServiceError.userNotSignedIn))
+        guard let uid = authService.currentUid else {
+            completion(.failure(AuthError.notAuthenticated))
             return
         }
-        
+
         roomService.fetchRoomMembers(roomId: room.id) { memberResult in
             switch memberResult {
             case .failure(let error):

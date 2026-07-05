@@ -192,37 +192,22 @@ struct MissionCompletionView: View {
         
         isSaving = true
         
-        if let selectedImage {
-            missionService.uploadMissionPhoto(image: selectedImage, roomId: room.id) { result in
-                switch result {
-                case .success(let photoURL):
-                    saveMissionRecord(value: valueDouble, photoURL: photoURL)
-                    
-                case .failure(let error):
-                    isSaving = false
-                    errorMessage = error.localizedDescription
-                    showErrorAlert = true
+        Task {
+            do {
+                var photoURL: String? = nil
+                if let selectedImage {
+                    photoURL = try await missionService.uploadMissionPhoto(image: selectedImage, roomId: room.id)
                 }
-            }
-        } else {
-            saveMissionRecord(value: valueDouble, photoURL: nil)
-        }
-    }
-    
-    private func saveMissionRecord(value: Double?, photoURL: String?) {
-        missionService.saveRecord(
-            room: room,
-            value: value,
-            comment: comment,
-            photoURL: photoURL
-        ) { result in
-            isSaving = false
-            
-            switch result {
-            case .success:
+                try await missionService.saveRecord(
+                    room: room,
+                    value: valueDouble,
+                    comment: comment,
+                    photoURL: photoURL
+                )
+                isSaving = false
                 dismiss()
-                
-            case .failure(let error):
+            } catch {
+                isSaving = false
                 errorMessage = error.localizedDescription
                 showErrorAlert = true
             }

@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
 
 struct MissionView: View {
     
@@ -16,6 +14,7 @@ struct MissionView: View {
     
     private let missionService = MissionService()
     private let roomService = RoomService()
+    private let authService = AuthService()
     
     var incompleteMissions: [TodayAllRoomsMissionData] {
         missions.filter { !$0.isCompleted }
@@ -77,7 +76,7 @@ struct MissionView: View {
     }
     
     private func loadMissions() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = try? authService.requireUid() else { return }
         
         isLoading = true
         
@@ -88,20 +87,14 @@ struct MissionView: View {
                 
             case .success(let rooms):
                 
-                let todayRooms = filterTodayRooms(rooms)
+                let today = Date()
+                let todayRooms = rooms.filter { $0.isScheduled(on: today) }
                 
-                missionService.fetchTodayRecords(uid: uid) { recordResult in
-                    
-                    isLoading = false
-                    
-                    switch recordResult {
-                    case .failure:
-                        break
-                        
-                    case .success(let records):
-                        
+                Task {
+                    do {
+                        let records = try await missionService.fetchTodayRecords(uid: uid)
+                        isLoading = false
                         let completedRoomIds = Set(records.map { $0.roomId })
-                        
                         self.missions = todayRooms.map { room in
                             TodayAllRoomsMissionData(
                                 id: room.id,
@@ -109,32 +102,11 @@ struct MissionView: View {
                                 isCompleted: completedRoomIds.contains(room.id)
                             )
                         }
+                    } catch {
+                        isLoading = false
                     }
                 }
             }
-        }
-    }
-    
-    private func filterTodayRooms(_ rooms: [Room]) -> [Room] {
-        
-        let calendar = Calendar(identifier: .gregorian)
-        let today = Date()
-        
-        let weekday = calendar.component(.weekday, from: today) - 1 // 日曜=0
-        
-        return rooms.filter { room in
-            
-            guard weekday < room.selectedWeekdays.count, room.selectedWeekdays[weekday] else { return false }
-            
-            if room.startDate.dateValue() > today {
-                return false
-            }
-
-            if let end = room.endDate, today > end.dateValue() {
-                return false
-            }
-            
-            return true
         }
     }
 }
